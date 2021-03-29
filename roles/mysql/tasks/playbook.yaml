@@ -1,0 +1,82 @@
+---
+- hosts: 'webservers'
+  remote_user: 'host'
+  vars:
+    var: 'user'
+    program_list:
+      -  'nginx'
+      -  'mysql-server'
+      -  'php-fpm'
+      -  'php-mysql'
+      -  'python3-pip'
+      -  'python3-pymysql'
+  gather_facts: false
+  tasks:
+    - name: 'install required soft (nginx, mysql, php, phyton)'
+      apt:
+        update_cache: true
+        force_apt_get: true
+        name: '{{ item }}'
+        state: 'present'
+      become: true  
+      loop: '{{  program_list }}'
+    - name: 'Create a new database with name wordpress_db'
+      community.mysql.mysql_db:
+        login_unix_socket: '/var/run/mysqld/mysqld.sock'
+        name: 'wordpress_db'
+        state: 'present'
+      become: true
+    - name: 'Create db user pass'
+      community.mysql.mysql_user:
+        login_unix_socket: '/var/run/mysqld/mysqld.sock'
+        name: 'wordpress_user'  
+        password: 'my_password'
+        priv: '*.*:ALL,GRANT'
+      become: true
+    - name: 'Get the hosts username'
+      become: 'false'
+      local_action: 'command whoami'
+      register: 'whoami'
+    - name: 'Download & unarchive wordpress'
+      unarchive:
+        src: 'https://wordpress.org/latest.tar.gz'
+        dest: '/var/www/'
+        remote_src: true
+      become: true
+    - name: 'Copy wp-config for datebase'
+      ansible.builtin.copy:
+        src: '/home/{{ whoami.stdout }}/ansible_homework/wp-config.php'  
+        dest: '/var/www/wordpress/wp-config.php'
+        mode: '0664'
+      become: true
+    - name: 'copy  nginx config'
+      ansible.builtin.copy:
+        src: '/home/{{ whoami.stdout }}/ansible_homework/nginx.conf'
+        dest: '/etc/nginx/sites-available/wordpress'
+        owner: 'www-data'
+        group: 'www-data'
+      become: true
+    - name: 'Create symbolic link'
+      ansible.builtin.file:
+        src: '/etc/nginx/sites-available/wordpress'
+        dest: '/etc/nginx/sites-enabled/wordpress'
+        state: 'link'
+      become: true
+    - name: 'Delete default files'
+      ansible.builtin.file:
+        path: '/etc/nginx/sites-enabled/default'
+        state: 'absent'
+      become: true
+    - name: 'Restart nginx'
+      service: 'name=nginx state=restarted'
+      become: true
+    - name: 'Set ownership'
+      file:
+        path: '/var/www/wordpress'
+        state: 'directory'
+        recurse: true
+        owner: 'www-data'
+        group: 'www-data'
+      become: true
+   
+...

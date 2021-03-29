@@ -1,0 +1,5 @@
+[webservers]
+localhost ansible_host=127.0.0.1 ansible_connection=local
+#web-server1 ansible_host=10.10.10.7  ansible_connection=ssh ansible_user=server ansible_sudo_pass=SecretKey ansible_ssh_pass=SecretKey
+#web-server2 ansible_host=10.10.10.5  ansible_connection=ssh ansible_user=host ansible_sudo_pass=Epam374+ ansible_ssh_pass=Epam374+
+
